@@ -1,4 +1,5 @@
 #include "ui.h"
+#include "i18n.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -188,7 +189,7 @@ static SDL_Color state_color(const ha_entity *e) {
     return FG;
 }
 
-// Polskie nazwy typowych stanów; liczby i reszta bez zmian.
+// Nazwy typowych stanów w języku interfejsu; liczby i reszta bez zmian.
 static const char *state_label(const char *s) {
     static const struct { const char *from, *to; } map[] = {
         {"on", "włączone"}, {"off", "wyłączone"}, {"open", "otwarte"}, {"closed", "zamknięte"},
@@ -197,7 +198,7 @@ static const char *state_label(const char *s) {
         {"standby", "czuwanie"}, {"running", "działa"},
     };
     for (size_t i = 0; i < sizeof(map) / sizeof(map[0]); i++)
-        if (!strcmp(s, map[i].from)) return map[i].to;
+        if (!strcmp(s, map[i].from)) return tr(map[i].to);
     return s;
 }
 
@@ -225,7 +226,7 @@ static void draw_start(const app_state *s, unsigned int frame) {
             default:          c = BG2; break;
         }
         fill(96, y + 4, 10, 10, c);
-        text(f_name, s->steps[i] == STEP_PENDING ? DIM : FG, 116, y, "%s", names[i]);
+        text(f_name, s->steps[i] == STEP_PENDING ? DIM : FG, 116, y, "%s", tr(names[i]));
         if (s->step_detail[i][0]) {
             char d[96];
             fit(f_small, s->step_detail[i], UI_W - 250 - 16, d, sizeof(d));
@@ -272,7 +273,7 @@ static void draw_tile(const ha_entity *e, int x, int y, int selected) {
         int vw = text(f_value, sc, x + 12, y + 28, "%s", buf);
         if (e->unit[0]) text(f_name, GRAY, x + 12 + vw + 5, y + 36, "%s", e->unit);
     } else {
-        text(f_title, RED, x + 12, y + 26, "błąd");
+        text(f_title, RED, x + 12, y + 26, "%s", tr("błąd"));
         fit(f_small, e->error, TILE_W - 22, buf, sizeof(buf));
         text(f_small, GRAY, x + 12, y + 46, "%s", buf);
     }
@@ -319,17 +320,17 @@ static void draw_panel(const app_state *s, const ui_view *v) {
 
     if (s->refreshing) {
         static const char *dots[] = {"", ".", "..", "..."};
-        text(f_small, YELLOW, 8, y1, "Odświeżanie%s", dots[(frame / 10) % 4]);
+        text(f_small, YELLOW, 8, y1, tr("Odświeżanie%s"), dots[(frame / 10) % 4]);
     } else if (s->refresh_error[0]) {
         char e[96];
         fit(f_small, s->refresh_error, 300, e, sizeof(e));
-        text(f_small, RED, 8, y1, "Błąd: %s", e);
+        text(f_small, RED, 8, y1, tr("Błąd: %s"), e);
     } else if (s->list_error[0]) {
         char e[96];
         fit(f_small, s->list_error, 290, e, sizeof(e));
-        text(f_small, YELLOW, 8, y1, "Lista: %s", e);
+        text(f_small, YELLOW, 8, y1, tr("Lista: %s"), e);
     } else {
-        text(f_small, GRAY, 8, y1, "Odświeżono %s · %u,%u s · co %d s",
+        text(f_small, GRAY, 8, y1, tr("Odświeżono %s · %u,%u s · co %d s"),
              s->last_refresh, s->last_ms / 1000, (s->last_ms % 1000) / 100, s->refresh_s);
     }
     if (selected < s->entity_count) {
@@ -341,10 +342,10 @@ static void draw_panel(const app_state *s, const ui_view *v) {
     x = 8;
     x += text(f_small, GRAY, x, y2, "%s · %s %u ms · RNG: ",
               s->tls_version[0] ? s->tls_version : "TLS",
-              s->resumed ? "wznowiona" : "pełny", s->handshake_ms);
-    text(f_small, s->rng_hw ? AQUA : YELLOW, x, y2, "%s", s->rng_hw ? "KIRK" : "słaby");
+              s->resumed ? tr("wznowiona") : tr("pełny"), s->handshake_ms);
+    text(f_small, s->rng_hw ? AQUA : YELLOW, x, y2, "%s", s->rng_hw ? "KIRK" : tr("słaby"));
 
-    const char *keys = "Δ wykres · X odśwież · START wyjście";
+    const char *keys = tr("Δ wykres · X odśwież · START wyjście");
     text(f_small, DIM, UI_W - 8 - text_width(f_small, keys), y2, "%s", keys);
 }
 
@@ -364,7 +365,7 @@ static void fmt_num(float v, char *out, size_t len) {
     else if (a >= 1) snprintf(out, len, "%.1f", v);
     else snprintf(out, len, "%.2f", v);
     for (char *p = out; *p; p++)
-        if (*p == '.') *p = ',';
+        if (*p == '.') *p = i18n_decimal();
 }
 
 static void draw_chart(const app_state *s, const ui_view *v) {
@@ -408,8 +409,8 @@ static void draw_chart(const app_state *s, const ui_view *v) {
     for (int i = 0; i <= 2; i++) {
         char t[24];
         int h = c->hours ? c->hours : ui_chart_hours[v->chart_range];
-        if (i == 2) snprintf(t, sizeof(t), "teraz");
-        else if (i == 1) snprintf(t, sizeof(t), h % 2 ? "-%d,5 h" : "-%d h", h / 2);
+        if (i == 2) snprintf(t, sizeof(t), "%s", tr("teraz"));
+        else if (i == 1) snprintf(t, sizeof(t), h % 2 ? tr("-%d,5 h") : "-%d h", h / 2);
         else snprintf(t, sizeof(t), "-%d h", h);
         int tw = text_width(f_small, t);
         int tx = CH_X0 + (CH_X1 - CH_X0) * i / 2 - (i == 0 ? 0 : i == 2 ? tw : tw / 2);
@@ -418,7 +419,7 @@ static void draw_chart(const app_state *s, const ui_view *v) {
 
     if (c->status == CHART_LOADING || c->status == CHART_NONE) {
         static const char *dots[] = {"", ".", "..", "..."};
-        text(f_name, YELLOW, CH_X0 + 16, (CH_Y0 + CH_Y1) / 2 - 8, "Wczytywanie historii%s",
+        text(f_name, YELLOW, CH_X0 + 16, (CH_Y0 + CH_Y1) / 2 - 8, tr("Wczytywanie historii%s"),
              dots[(v->frame / 10) % 4]);
     } else if (c->status == CHART_ERROR) {
         fit(f_name, c->error, CH_X1 - CH_X0 - 32, buf, sizeof(buf));
@@ -437,7 +438,7 @@ static void draw_chart(const app_state *s, const ui_view *v) {
 
         // Etykiety osi Y
         char a[24], b[24];
-        if (c->binary) { snprintf(a, sizeof(a), "wł."); snprintf(b, sizeof(b), "wył."); }
+        if (c->binary) { snprintf(a, sizeof(a), "%s", tr("wł.")); snprintf(b, sizeof(b), "%s", tr("wył.")); }
         else { fmt_num(c->max, a, sizeof(a)); fmt_num(c->min, b, sizeof(b)); }
         text(f_small, GRAY, CH_X0 - 6 - text_width(f_small, a), VY(c->binary ? 1 : c->max) - 7, "%s", a);
         text(f_small, GRAY, CH_X0 - 6 - text_width(f_small, b), VY(c->binary ? 0 : c->min) - 7, "%s", b);
@@ -480,15 +481,15 @@ static void draw_chart(const app_state *s, const ui_view *v) {
         char mn[24], mx[24];
         fmt_num(c->min, mn, sizeof(mn));
         fmt_num(c->max, mx, sizeof(mx));
-        if (c->binary) text(f_small, GRAY, 8, y1, "%d zmian stanu · %d h", c->samples, c->hours);
-        else text(f_small, GRAY, 8, y1, "min %s · max %s · %d próbek", mn, mx, c->samples);
+        if (c->binary) text(f_small, GRAY, 8, y1, tr("%d zmian stanu · %d h"), c->samples, c->hours);
+        else text(f_small, GRAY, 8, y1, tr("min %s · max %s · %d próbek"), mn, mx, c->samples);
     }
     if (e) {
         char id[96];
         fit(f_small, e->id, 200, id, sizeof(id));
         text(f_small, DIM, UI_W - 8 - text_width(f_small, id), y1, "%s", id);
     }
-    const char *keys = "L/R zakres · ‹ › encja · Δ/O powrót";
+    const char *keys = tr("L/R zakres · ‹ › encja · Δ/O powrót");
     text(f_small, DIM, UI_W - 8 - text_width(f_small, keys), y2, "%s", keys);
 }
 

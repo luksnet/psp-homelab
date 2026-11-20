@@ -68,6 +68,7 @@ przyciemnia sam obraz zamiast podświetlenia (podświetlenie dalej świeci).
 
 | Klucz | Opis |
 |---|---|
+| `lang` | język interfejsu: `pl` (domyślnie) albo `en` |
 | `host`, `port` | adres Home Assistant; nazwa musi pasować do certyfikatu |
 | `token` | token długoterminowy, najlepiej użytkownika bez uprawnień administratora |
 | `ca` | puste = publiczne CA; `ca.pem` = własne CA z pliku obok `config.ini` |
@@ -171,7 +172,9 @@ hosta działa w czasie rzeczywistym, więc czasy odświeżania wychodzą tam zaw
 tools/test/run.sh
 ```
 
-Sprawdza na komputerze parsowanie dat ISO, kubełki wykresu i okno trybu nocnego.
+Sprawdza na komputerze parsowanie dat ISO, kubełki wykresu i okno trybu nocnego,
+a także tłumaczenia: każdy tekst w `tr("...")` musi mieć angielski odpowiednik
+w `src/i18n.c` z tymi samymi znacznikami printf.
 
 ### Podgląd GUI na komputerze
 
@@ -180,7 +183,7 @@ tools/preview/build.sh
 ```
 
 Kompiluje `src/ui.c` na komputer i zapisuje przykładowe ekrany do
-`build/preview/*.png`, bez emulatora.
+`build/preview/*.png` (wersja angielska w `build/preview/en/`), bez emulatora.
 
 ## Jak to działa
 
@@ -199,6 +202,7 @@ Kompiluje `src/ui.c` na komputer i zapisuje przykładowe ekrany do
 | `backlight/` | moduł jądra: `sceDisplaySetBrightness` z `sceDisplay_driver` |
 | `tools/deploy.sh` | wgrywanie na PSP przez USB |
 | `src/config.c`, `src/net.c` | `config.ini`, Wi-Fi |
+| `src/i18n.c` | teksty interfejsu po angielsku (`lang = en`); w kodzie są po polsku i przechodzą przez `tr()` |
 
 Losowość dla mbedTLS: KIRK jako źródło „silne” plus drgania zegara jako
 dodatkowe „słabe”. Domyślne `getentropy()` w pspdev (Mersenne Twister zasiany

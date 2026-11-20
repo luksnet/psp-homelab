@@ -6,8 +6,23 @@
 #include "timeutil.h"
 #include "chart.h"
 #include "night.h"
+#include "i18n.h"
 
 static int fails;
+
+// Ciąg specyfikatorów printf ("%s", "%.40s", "%u"...), bez "%%".
+static void specs(const char *f, char *out, size_t len) {
+    size_t n = 0;
+    for (; *f && n + 2 < len; f++) {
+        if (*f != '%') continue;
+        if (f[1] == '%') { f++; continue; }
+        while (*++f && !strchr("diouxXeEfgGcspn", *f)) out[n++] = *f;
+        if (*f) out[n++] = *f;
+        out[n++] = ' ';
+        if (!*f) break;
+    }
+    out[n] = '\0';
+}
 #define CHECK(c) do { if (!(c)) { printf("BŁĄD %s:%d: %s\n", __FILE__, __LINE__, #c); fails++; } } while (0)
 
 int main(void) {
@@ -104,6 +119,22 @@ int main(void) {
     CHECK(night_update(&nc, 7 * 60, 40000, 0) == 0 && !night_active());   // rano jasno
     nc.enabled = 0;
     CHECK(night_update(&nc, 23 * 60, 50000, 0) == 0 && !night_active());
+
+    // i18n: angielskie wzorce mają te same specyfikatory co polskie
+    for (int i = 0; i < i18n_count(); i++) {
+        char a[64], b[64];
+        specs(i18n_pl(i), a, sizeof(a));
+        specs(i18n_en(i), b, sizeof(b));
+        if (strcmp(a, b)) printf("  i18n: \"%s\" [%s] != [%s]\n", i18n_pl(i), a, b);
+        CHECK(!strcmp(a, b));
+        for (int j = 0; j < i; j++) CHECK(strcmp(i18n_pl(i), i18n_pl(j)));  // bez duplikatów
+    }
+    i18n_set(LANG_PL);
+    CHECK(!strcmp(tr("teraz"), "teraz") && i18n_decimal() == ',');
+    i18n_set(LANG_EN);
+    CHECK(!strcmp(tr("teraz"), "now") && i18n_decimal() == '.');
+    CHECK(!strcmp(tr("tekst spoza tabeli"), "tekst spoza tabeli"));
+    i18n_set(LANG_PL);
 
     printf(fails ? "%d błędów\n" : "wszystko OK\n", fails);
     return fails != 0;

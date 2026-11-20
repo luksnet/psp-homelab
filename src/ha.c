@@ -1,4 +1,5 @@
 #include "ha.h"
+#include "i18n.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -33,10 +34,10 @@ int ha_fetch_state(https_client *c, const char *token, ha_entity *e) {
 
     int rc = 0;
     if (res.status == 401) {
-        snprintf(e->error, sizeof(e->error), "token odrzucony (401)");
+        snprintf(e->error, sizeof(e->error), "%s", tr("token odrzucony (401)"));
         rc = -1;  // ten sam token dla wszystkich encji, nie ma sensu próbować dalej
     } else if (res.status == 404) {
-        snprintf(e->error, sizeof(e->error), "brak encji (404)");
+        snprintf(e->error, sizeof(e->error), "%s", tr("brak encji (404)"));
         rc = -2;
     } else if (res.status != 200) {
         snprintf(e->error, sizeof(e->error), "HTTP %d", res.status);
@@ -45,7 +46,7 @@ int ha_fetch_state(https_client *c, const char *token, ha_entity *e) {
         cJSON *root = cJSON_Parse(res.body);
         const cJSON *state = root ? cJSON_GetObjectItemCaseSensitive(root, "state") : NULL;
         if (!cJSON_IsString(state)) {
-            snprintf(e->error, sizeof(e->error), "zła odpowiedź JSON");
+            snprintf(e->error, sizeof(e->error), "%s", tr("zła odpowiedź JSON"));
             rc = -2;
         } else {
             utf8_copy(e->state, sizeof(e->state), state->valuestring);
@@ -103,7 +104,7 @@ int ha_fetch_entity_list(https_client *c, const char *token, const char *source,
         const char *label = source + 6;
         // Nazwa trafia do szablonu Jinja, więc dopuszczamy tylko [a-z0-9_].
         if (!valid_name(label)) {
-            snprintf(err, errlen, "etykieta: tylko a-z, 0-9 i _");
+            snprintf(err, errlen, "%s", tr("etykieta: tylko a-z, 0-9 i _"));
             return -1;
         }
         char body[160];
@@ -118,7 +119,7 @@ int ha_fetch_entity_list(https_client *c, const char *token, const char *source,
     } else {
         // Encja-grupa: group.psp z YAML albo pomocnik z interfejsu (light.psp, sensor.psp...).
         if (!valid_entity_id(source)) {
-            snprintf(err, errlen, "%.40s: zły identyfikator encji", source);
+            snprintf(err, errlen, tr("%.40s: zły identyfikator encji"), source);
             return -1;
         }
         char path[96];
@@ -132,11 +133,11 @@ int ha_fetch_entity_list(https_client *c, const char *token, const char *source,
 
     if (res.status == 401) {
         // /api/template wymaga konta administratora; grupa działa z każdym tokenem.
-        snprintf(err, errlen, is_label ? "%s: 401 (szablony wymagają admina, użyj group.)"
-                                       : "%s: token odrzucony (401)", source);
+        snprintf(err, errlen, is_label ? tr("%s: 401 (szablony wymagają admina, użyj group.)")
+                                       : tr("%s: token odrzucony (401)"), source);
         n = -1;
     } else if (res.status == 404) {
-        snprintf(err, errlen, "%s: brak (404)", source);
+        snprintf(err, errlen, tr("%s: brak (404)"), source);
         n = -1;
     } else if (res.status != 200) {
         snprintf(err, errlen, "%s: HTTP %d", source, res.status);
@@ -151,7 +152,7 @@ int ha_fetch_entity_list(https_client *c, const char *token, const char *source,
         const cJSON *attrs = cJSON_GetObjectItemCaseSensitive(root, "attributes");
         const cJSON *list = cJSON_GetObjectItemCaseSensitive(attrs, "entity_id");
         if (!cJSON_IsArray(list)) {
-            snprintf(err, errlen, "%s: to nie jest grupa", source);
+            snprintf(err, errlen, tr("%s: to nie jest grupa"), source);
             n = -1;
         } else {
             const cJSON *it;
@@ -173,7 +174,7 @@ int ha_fetch_history(https_client *c, const char *token, const char *entity_id,
                      int hours, tu_time now, chart_data *d) {
     d->error[0] = '\0';
     if (!valid_entity_id(entity_id)) {
-        snprintf(d->error, sizeof(d->error), "zły identyfikator encji");
+        snprintf(d->error, sizeof(d->error), "%s", tr("zły identyfikator encji"));
         return -1;
     }
     tu_time start = now - (tu_time)hours * 3600;
@@ -197,7 +198,7 @@ int ha_fetch_history(https_client *c, const char *token, const char *entity_id,
     }
     int rc = 0;
     if (res.status != 200) {
-        snprintf(d->error, sizeof(d->error), res.status == 401 ? "token odrzucony (401)" : "HTTP %d",
+        snprintf(d->error, sizeof(d->error), res.status == 401 ? tr("token odrzucony (401)") : "HTTP %d",
                  res.status);
         rc = -1;
     } else {
@@ -205,7 +206,7 @@ int ha_fetch_history(https_client *c, const char *token, const char *entity_id,
         // Odpowiedź: [[{state, last_changed}, ...]] — jedna lista na encję.
         const cJSON *list = cJSON_IsArray(root) ? cJSON_GetArrayItem(root, 0) : NULL;
         if (!root || (list && !cJSON_IsArray(list))) {
-            snprintf(d->error, sizeof(d->error), "zła odpowiedź JSON");
+            snprintf(d->error, sizeof(d->error), "%s", tr("zła odpowiedź JSON"));
             rc = -1;
         } else {
             static chart_acc acc;  // ~1,2 KB, nie na stosie wątku
@@ -220,7 +221,7 @@ int ha_fetch_history(https_client *c, const char *token, const char *entity_id,
                     chart_add(&acc, t, st->valuestring);
             }
             if (chart_finish(&acc, d) == 0) {
-                snprintf(d->error, sizeof(d->error), "brak danych liczbowych w tym zakresie");
+                snprintf(d->error, sizeof(d->error), "%s", tr("brak danych liczbowych w tym zakresie"));
                 rc = -1;
             }
         }

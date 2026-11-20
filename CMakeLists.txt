@@ -73,6 +73,7 @@ add_executable(${PROJECT_NAME}
     src/night.c
     src/timeutil.c
     src/chart.c
+    src/i18n.c
     kirkrng/KirkRng.S
     backlight/Backlight.S
     ${EMBED_ca_bundle}

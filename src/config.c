@@ -1,4 +1,5 @@
 #include "config.h"
+#include "i18n.h"
 #include "night.h"
 
 #include <stdio.h>
@@ -60,11 +61,21 @@ int config_load(const char *argv0, app_config *cfg, char *err, int errlen) {
     char *dir = cfg->dir;
     FILE *f = open_config(argv0, cfg->path, sizeof(cfg->path), dir, sizeof(cfg->dir));
     if (!f) {
-        snprintf(err, errlen, "nie znaleziono config.ini");
-        return -1;
+        snprintf(err, errlen, "nie znaleziono config.ini / config.ini not found");
+        return -2;
     }
 
+    // Najpierw sam klucz lang, żeby kolejne błędy były już w wybranym języku.
     char line[640];
+    i18n_set(LANG_PL);
+    while (fgets(line, sizeof(line), f)) {
+        char *s = trim(line), *eq = strchr(s, '=');
+        if (!eq || *s == '#' || *s == ';') continue;
+        *eq = '\0';
+        if (!strcmp(trim(s), "lang") && !strcmp(trim(eq + 1), "en")) i18n_set(LANG_EN);
+    }
+    rewind(f);
+
     int lineno = 0;
     while (fgets(line, sizeof(line), f)) {
         lineno++;
@@ -72,7 +83,7 @@ int config_load(const char *argv0, app_config *cfg, char *err, int errlen) {
         if (!*s || *s == '#' || *s == ';') continue;
         char *eq = strchr(s, '=');
         if (!eq) {
-            snprintf(err, errlen, "linia %d: brak '='", lineno);
+            snprintf(err, errlen, tr("linia %d: brak '='"), lineno);
             fclose(f);
             return -1;
         }
@@ -86,6 +97,13 @@ int config_load(const char *argv0, app_config *cfg, char *err, int errlen) {
         else if (!strcmp(key, "refresh"))      cfg->refresh_s = atoi(val);
         else if (!strcmp(key, "wifi_profile")) cfg->wifi_profile = atoi(val);
         else if (!strcmp(key, "autoexit"))     cfg->autoexit_s = atoi(val);
+        else if (!strcmp(key, "lang")) {
+            if (strcmp(val, "pl") && strcmp(val, "en")) {
+                snprintf(err, errlen, tr("linia %d: lang = pl albo en"), lineno);
+                fclose(f);
+                return -1;
+            }
+        }
         else if (!strcmp(key, "test_chart"))   copy(cfg->test_chart, sizeof(cfg->test_chart), val);
         else if (!strcmp(key, "ca")) {
             if (*val == '\0') cfg->ca_path[0] = '\0';
@@ -95,7 +113,7 @@ int config_load(const char *argv0, app_config *cfg, char *err, int errlen) {
             if (!*val || !strcmp(val, "off")) cfg->night.enabled = 0;
             else if (night_parse(val, &cfg->night.from_min, &cfg->night.to_min) == 0) cfg->night.enabled = 1;
             else {
-                snprintf(err, errlen, "linia %d: night = GG:MM-GG:MM", lineno);
+                snprintf(err, errlen, tr("linia %d: night = GG:MM-GG:MM"), lineno);
                 fclose(f);
                 return -1;
             }
@@ -108,7 +126,7 @@ int config_load(const char *argv0, app_config *cfg, char *err, int errlen) {
             // dowolna encja z atrybutem entity_id; sprawdza to dopiero HA.
             int okv = !strncmp(val, "label:", 6) ? val[6] != '\0' : strchr(val, '.') != NULL;
             if (!okv) {
-                snprintf(err, errlen, "linia %d: entities_from = label:NAZWA albo encja grupy, np. light.psp", lineno);
+                snprintf(err, errlen, tr("linia %d: entities_from = label:NAZWA albo encja grupy, np. light.psp"), lineno);
                 fclose(f);
                 return -1;
             }
@@ -122,10 +140,10 @@ int config_load(const char *argv0, app_config *cfg, char *err, int errlen) {
     }
     fclose(f);
 
-    if (!cfg->host[0])         { snprintf(err, errlen, "brak 'host' w config.ini");  return -1; }
-    if (!cfg->token[0])        { snprintf(err, errlen, "brak 'token' w config.ini"); return -1; }
+    if (!cfg->host[0])         { snprintf(err, errlen, "%s", tr("brak 'host' w config.ini"));  return -1; }
+    if (!cfg->token[0])        { snprintf(err, errlen, "%s", tr("brak 'token' w config.ini")); return -1; }
     if (!cfg->entity_count && !cfg->source_count) {
-        snprintf(err, errlen, "brak 'entity' ani 'entities_from' w config.ini");
+        snprintf(err, errlen, "%s", tr("brak 'entity' ani 'entities_from' w config.ini"));
         return -1;
     }
     if (cfg->port <= 0 || cfg->port > 65535) cfg->port = 443;

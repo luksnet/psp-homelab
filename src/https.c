@@ -1,6 +1,7 @@
 // Klient HTTPS na mbedTLS 2.28 (TLS 1.2) dla PSP.
 
 #include "https.h"
+#include "i18n.h"
 #include "rng.h"
 
 #include <stdio.h>
@@ -78,7 +79,7 @@ int https_global_init(const char *ca_pem_path, char *err, size_t errlen) {
     if (rng_hw_available()) {
         ret = mbedtls_entropy_add_source(&entropy, rng_hw_entropy, NULL, 32,
                                          MBEDTLS_ENTROPY_SOURCE_STRONG);
-        if (ret != 0) { fmt_err(err, errlen, "źródło KIRK", ret); return ret; }
+        if (ret != 0) { fmt_err(err, errlen, tr("źródło KIRK"), ret); return ret; }
     }
     mbedtls_entropy_add_source(&entropy, psp_jitter_entropy, NULL, 32,
                                MBEDTLS_ENTROPY_SOURCE_WEAK);
@@ -86,19 +87,19 @@ int https_global_init(const char *ca_pem_path, char *err, size_t errlen) {
     const char *pers = "psp-homelab";
     ret = mbedtls_ctr_drbg_seed(&drbg, mbedtls_entropy_func, &entropy,
                                     (const unsigned char *)pers, strlen(pers));
-    if (ret != 0) { fmt_err(err, errlen, "generator losowy", ret); return ret; }
+    if (ret != 0) { fmt_err(err, errlen, tr("generator losowy"), ret); return ret; }
 
     if (ca_pem_path) {
         ret = mbedtls_x509_crt_parse_file(&ca_chain, ca_pem_path);
         if (ret != 0) {  // dla własnego CA oczekujemy, że każdy certyfikat się wczyta
-            fmt_err(err, errlen, "plik CA", ret < 0 ? ret : -1);
+            fmt_err(err, errlen, tr("plik CA"), ret < 0 ? ret : -1);
             return ret < 0 ? ret : -1;
         }
         snprintf(g_ca_source, sizeof(g_ca_source), "%s", ca_pem_path);
     } else {
         ret = mbedtls_x509_crt_parse(&ca_chain, ca_bundle, ca_bundle_len);
-        if (ret < 0) { fmt_err(err, errlen, "wbudowane CA", ret); return ret; }
-        snprintf(g_ca_source, sizeof(g_ca_source), "wbudowane publiczne CA");
+        if (ret < 0) { fmt_err(err, errlen, tr("wbudowane CA"), ret); return ret; }
+        snprintf(g_ca_source, sizeof(g_ca_source), "%s", tr("wbudowane publiczne CA"));
     }
 
     g_ready = 1;
@@ -113,7 +114,7 @@ void https_global_free(void) {
     g_ready = 0;
 }
 
-const char *https_ca_source(void) { return g_ca_source; }
+const char *https_ca_source(void) { return tr(g_ca_source); }
 
 // ---------------------------------------------------------------------------
 // Połączenie
@@ -173,7 +174,7 @@ static void copy_cn(char *dst, size_t len, const mbedtls_x509_name *name) {
 static int client_connect(https_client *c, char *err, size_t errlen) {
     int ret;
     if ((ret = mbedtls_net_connect(&c->sock, c->host, c->port, MBEDTLS_NET_PROTO_TCP)) != 0) {
-        fmt_err(err, errlen, "połączenie TCP", ret);
+        fmt_err(err, errlen, tr("połączenie TCP"), ret);
         return ret;
     }
     if ((ret = mbedtls_ssl_setup(&c->ssl, &c->conf)) != 0) {
@@ -209,9 +210,9 @@ static int client_connect(https_client *c, char *err, size_t errlen) {
             char vinfo[96];
             mbedtls_x509_crt_verify_info(vinfo, sizeof(vinfo), "", flags);
             vinfo[strcspn(vinfo, "\n")] = '\0';
-            snprintf(err, errlen, "certyfikat odrzucony: %s", vinfo);
+            snprintf(err, errlen, tr("certyfikat odrzucony: %s"), vinfo);
         } else {
-            fmt_err(err, errlen, "handshake TLS", ret);
+            fmt_err(err, errlen, tr("handshake TLS"), ret);
         }
         c->have_session = 0;  // zła sesja nie powinna blokować kolejnych prób
         return ret;
@@ -332,7 +333,7 @@ static int read_response(https_client *c, https_response *res, int *keep_alive) 
     headers[hdr_len] = '\0';
 
     if (sscanf(headers, "HTTP/%*s %d", &res->status) != 1) {
-        snprintf(res->error, sizeof(res->error), "niepoprawna odpowiedź HTTP");
+        snprintf(res->error, sizeof(res->error), "%s", tr("niepoprawna odpowiedź HTTP"));
         free(headers); free(b.d);
         return -1;
     }
@@ -424,7 +425,7 @@ int https_request(https_client *c, const char *method, const char *path,
                   const char *extra_headers, const char *body, https_response *res) {
     memset(res, 0, sizeof(*res));
     if (!g_ready || !c->conf_ready) {
-        snprintf(res->error, sizeof(res->error), "TLS nie został zainicjalizowany");
+        snprintf(res->error, sizeof(res->error), "%s", tr("TLS nie został zainicjalizowany"));
         return -1;
     }
 
@@ -442,7 +443,7 @@ int https_request(https_client *c, const char *method, const char *path,
                             extra_headers ? extra_headers : "",
                             (unsigned)body_len);
     if (head_len < 0 || head_len >= (int)sizeof(head)) {
-        snprintf(res->error, sizeof(res->error), "za długie nagłówki");
+        snprintf(res->error, sizeof(res->error), "%s", tr("za długie nagłówki"));
         return -1;
     }
 
@@ -461,7 +462,7 @@ int https_request(https_client *c, const char *method, const char *path,
         if (ret != 0) {
             https_client_close(c);
             if (reused) continue;
-            fmt_err(res->error, sizeof(res->error), "wysyłanie", ret);
+            fmt_err(res->error, sizeof(res->error), tr("wysyłanie"), ret);
             return -1;
         }
 
@@ -472,14 +473,14 @@ int https_request(https_client *c, const char *method, const char *path,
             continue;
         }
         if (ret != 0) {
-            if (!res->error[0]) snprintf(res->error, sizeof(res->error), "błąd odbioru odpowiedzi");
+            if (!res->error[0]) snprintf(res->error, sizeof(res->error), "%s", tr("błąd odbioru odpowiedzi"));
             https_client_close(c);
             return -1;
         }
         if (!keep_alive) https_client_close(c);
         return 0;
     }
-    snprintf(res->error, sizeof(res->error), "połączenie zerwane");
+    snprintf(res->error, sizeof(res->error), "%s", tr("połączenie zerwane"));
     return -1;
 }
 

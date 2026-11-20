@@ -12,10 +12,10 @@ generator of the KIRK chip.
 - night mode: dims the screen backlight at night
 - one-command install to the PSP over USB
 
-The on-screen interface is in Polish.
+Set `lang = en` in `config.ini` for an English interface (the default is Polish).
 
-![Panel](docs/panel.png)
-![Chart](docs/wykres.png)
+![Panel](docs/en/panel.png)
+![Chart](docs/en/chart.png)
 
 ## Requirements
 
@@ -64,13 +64,14 @@ Manually: copy `EBOOT.PBP`, both `.prx` files, `config.ini` (from
 `config.example.ini`) and optionally `ca.pem` to `ms0:/PSP/GAME/psp-homelab/`.
 
 Without `kirkrng.prx` the program works, but with a weaker randomness source;
-the panel then shows "RNG: słaby" (weak). Without `backlight.prx` night mode
+the panel then shows "RNG: weak". Without `backlight.prx` night mode
 darkens the picture instead of the backlight (the backlight stays on).
 
 ## Configuration
 
 | Key | Description |
 |---|---|
+| `lang` | interface language: `pl` (default) or `en` |
 | `host`, `port` | Home Assistant address; the name must match the certificate |
 | `token` | long-lived access token, ideally of a non-admin user |
 | `ca` | empty = public CAs; `ca.pem` = your own CA from a file next to `config.ini` |
@@ -94,7 +95,7 @@ Instead of listing entities in `config.ini`, mark them in HA and give the source
   labels & zones → Labels, add `psp` and assign it to entities. The program
   asks for them via `POST /api/template`, which requires an **admin** token.
   With a regular user's token HA answers 401 and the bottom of the panel
-  shows "Lista: … 401".
+  shows "List: … 401".
 - **Group** (`entities_from = light.psp`): works with a non-admin token, which
   makes it the safer option. Settings → Devices & services → Helpers →
   Create helper → Group. Such a group combines entities of one type (lights,
@@ -165,7 +166,7 @@ Enable networking in PPSSPP: Settings → Networking. `--close-after 4` closes
 the connection every 4 requests, so TLS session resumption is visible.
 
 `PPSSPPHeadless -l` prints the start sequence and every refresh to the log
-(`[start]`, `[refresh]`, `[lista]`, `[wykres]`, `[noc]`). Note: headless mode
+(`[start]`, `[refresh]`, `[lista]`, `[wykres]`, `[noc]`; the log itself is in Polish). Note: headless mode
 speeds up emulated time while host networking runs in real time, so refresh
 timings come out inflated there.
 
@@ -175,7 +176,9 @@ timings come out inflated there.
 tools/test/run.sh
 ```
 
-Checks ISO date parsing, chart buckets and the night mode window on the computer.
+Checks ISO date parsing, chart buckets and the night mode window on the computer,
+plus the translations: every string in `tr("...")` must have an English
+counterpart in `src/i18n.c` with the same printf placeholders.
 
 ### GUI preview on the computer
 
@@ -184,7 +187,7 @@ tools/preview/build.sh
 ```
 
 Compiles `src/ui.c` for the computer and saves sample screens to
-`build/preview/*.png`, without an emulator.
+`build/preview/*.png` (English ones in `build/preview/en/`), without an emulator.
 
 ## How it works
 
@@ -203,6 +206,7 @@ Compiles `src/ui.c` for the computer and saves sample screens to
 | `backlight/` | kernel module: `sceDisplaySetBrightness` from `sceDisplay_driver` |
 | `tools/deploy.sh` | installing to the PSP over USB |
 | `src/config.c`, `src/net.c` | `config.ini`, Wi-Fi |
+| `src/i18n.c` | English UI strings (`lang = en`); strings in the code are Polish and go through `tr()` |
 
 Randomness for mbedTLS: KIRK as the "strong" source plus clock jitter as an
 additional "weak" one. The default `getentropy()` in pspdev (a Mersenne

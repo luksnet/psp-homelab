@@ -5,7 +5,11 @@
 #include <string.h>
 #include <SDL2/SDL.h>
 #include "ui.h"
+#include "i18n.h"
 #include <math.h>
+
+// Przykładowe dane w języku zrzutu.
+static const char *L(const char *pl, const char *en) { return i18n_get() == LANG_EN ? en : pl; }
 
 static void draw(const app_state *s, int selected, unsigned frame) {
     ui_view v = {0};
@@ -66,18 +70,18 @@ static void base_panel(app_state *s) {
     s->running = 1;
     snprintf(s->host, sizeof(s->host), "ha.example.dev");
     s->refresh_s = 30;
-    ent(s, "light.salon", "Światło w salonie", "on", "", 1, NULL);
-    ent(s, "light.sypialnia", "Sypialnia", "off", "", 1, NULL);
-    ent(s, "sensor.temperatura_salon", "Temperatura w salonie", "21.4", "°C", 1, NULL);
-    ent(s, "binary_sensor.drzwi_wejsciowe", "Drzwi wejściowe", "closed", "", 1, NULL);
+    ent(s, "light.salon", L("Światło w salonie", "Living room light"), "on", "", 1, NULL);
+    ent(s, "light.sypialnia", L("Sypialnia", "Bedroom"), "off", "", 1, NULL);
+    ent(s, "sensor.temperatura_salon", L("Temperatura w salonie", "Living room temperature"), "21.4", "°C", 1, NULL);
+    ent(s, "binary_sensor.drzwi_wejsciowe", L("Drzwi wejściowe", "Front door"), "closed", "", 1, NULL);
     ent(s, "sensor.proxmox_cpu", "Proxmox CPU", "12", "%", 1, NULL);
     ent(s, "switch.lab_ad", "Lab Active Directory", "unavailable", "", 1, NULL);
-    ent(s, "sensor.nie_istnieje", "sensor.nie_istnieje", "", "", 0, "brak encji (404)");
+    ent(s, "sensor.nie_istnieje", "sensor.nie_istnieje", "", "", 0, tr("brak encji (404)"));
     snprintf(s->tls_version, sizeof(s->tls_version), "TLSv1.2");
     s->resumed = 1;
     s->handshake_ms = 18;
     s->rng_hw = 1;
-    snprintf(s->rng, sizeof(s->rng), "KIRK (sprzętowy)");
+    snprintf(s->rng, sizeof(s->rng), "%s", tr("KIRK (sprzętowy)"));
     snprintf(s->last_refresh, sizeof(s->last_refresh), "14:32:01");
     s->last_ms = 420;
 }
@@ -96,6 +100,7 @@ static int save(SDL_Renderer *r, SDL_Surface *surf, const char *dir, const char 
 
 int main(int argc, char **argv) {
     const char *out = argc > 1 ? argv[1] : ".";
+    if (argc > 2 && !strcmp(argv[2], "en")) i18n_set(LANG_EN);
     if (SDL_Init(0) != 0) return 1;
     SDL_Surface *surf = SDL_CreateRGBSurfaceWithFormat(0, UI_W, UI_H, 32, SDL_PIXELFORMAT_ARGB8888);
     SDL_Renderer *r = SDL_CreateSoftwareRenderer(surf);
@@ -109,19 +114,20 @@ int main(int argc, char **argv) {
 
     // 1. Start w toku
     memset(&s, 0, sizeof(s));
-    s.steps[STEP_CONFIG] = STEP_OK;   snprintf(s.step_detail[0], 64, "7 encji, odświeżanie co 30 s");
+    s.steps[STEP_CONFIG] = STEP_OK;   snprintf(s.step_detail[0], 64, tr("%d encji, odświeżanie co %d s"), 7, 30);
     s.steps[STEP_WIFI] = STEP_OK;     snprintf(s.step_detail[1], 64, "IP 192.168.1.42");
-    s.steps[STEP_RNG] = STEP_OK;      snprintf(s.step_detail[2], 64, "KIRK (sprzętowy)");
-    s.steps[STEP_TLS] = STEP_ACTIVE;  snprintf(s.step_detail[3], 64, "wczytywanie CA");
+    s.steps[STEP_RNG] = STEP_OK;      snprintf(s.step_detail[2], 64, "%s", tr("KIRK (sprzętowy)"));
+    s.steps[STEP_TLS] = STEP_ACTIVE;  snprintf(s.step_detail[3], 64, "%s", tr("wczytywanie CA"));
     draw(&s, 0, 0);
     rc |= save(r, surf, out, "1-start");
 
     // 2. Błąd startu
     s.steps[STEP_TLS] = STEP_OK;      snprintf(s.step_detail[3], 64, "CA: ms0:/PSP/GAME/psp-homelab/ca.pem");
-    s.steps[STEP_HA] = STEP_ERROR;    snprintf(s.step_detail[4], 64, "certyfikat odrzucony: nazwa się nie zgadza");
-    s.steps[STEP_RNG] = STEP_WARN;    snprintf(s.step_detail[2], 64, "SLABY: brak kirkrng.prx");
-    snprintf(s.error, sizeof(s.error), "Nie można połączyć z Home Assistant");
-    snprintf(s.hint, sizeof(s.hint), "Sprawdź host i port w config.ini oraz to,\nczy certyfikat pasuje do nazwy hosta.");
+    s.steps[STEP_HA] = STEP_ERROR;    snprintf(s.step_detail[4], 64, tr("certyfikat odrzucony: %s"), L("nazwa się nie zgadza", "CN mismatch"));
+    s.steps[STEP_RNG] = STEP_WARN;    snprintf(s.step_detail[2], 64, tr("SŁABY: brak kirkrng.prx (0x%08X)"), 0x80010002u);
+    snprintf(s.error, sizeof(s.error), "%s", tr("Nie można połączyć z Home Assistant"));
+    snprintf(s.hint, sizeof(s.hint), "%s", tr("Sprawdź host i port w config.ini oraz to,\n"
+                                                 "czy certyfikat pasuje do nazwy hosta."));
     draw(&s, 0, 0);
     rc |= save(r, surf, out, "2-blad");
 
@@ -141,7 +147,7 @@ int main(int argc, char **argv) {
 
     // 5. Druga strona
     base_panel(&s);
-    snprintf(s.refresh_error, sizeof(s.refresh_error), "połączenie TCP: -0x0052 NET - Failed to connect");
+    snprintf(s.refresh_error, sizeof(s.refresh_error), "%s: -0x0052 NET - Failed to connect", tr("połączenie TCP"));
     draw(&s, 6, 0);
     rc |= save(r, surf, out, "5-strona2");
 
@@ -168,7 +174,7 @@ int main(int argc, char **argv) {
 
     // 9. Noc bez backlight.prx: przyciemniony obraz, błąd listy encji
     base_panel(&s);
-    snprintf(s.list_error, sizeof(s.list_error), "label:psp: 401 (szablony wymagają admina, użyj group.)");
+    snprintf(s.list_error, sizeof(s.list_error), tr("%s: 401 (szablony wymagają admina, użyj group.)"), "label:psp");
     {
         ui_view v = {0};
         v.dim = 80;

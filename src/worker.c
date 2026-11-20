@@ -1,4 +1,5 @@
 #include "worker.h"
+#include "i18n.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -207,17 +208,26 @@ static int worker_main(void *arg) {
 
     // 1. Konfiguracja
     set_step(STEP_CONFIG, STEP_ACTIVE, NULL);
-    if (config_load(argv0_copy, &cfg, err, sizeof(err)) != 0) {
+    int cl = config_load(argv0_copy, &cfg, err, sizeof(err));
+    if (cl == -2) {
+        // Bez pliku nie znamy języka: komunikat w obu.
+        set_step(STEP_CONFIG, STEP_ERROR, "brak config.ini / config.ini not found");
+        fail("Brak config.ini / config.ini not found",
+             "Skopiuj config.example.ini jako config.ini obok EBOOT.PBP.\n"
+             "Copy config.example.ini to config.ini next to EBOOT.PBP.");
+        return 0;
+    }
+    if (cl != 0) {
         set_step(STEP_CONFIG, STEP_ERROR, "%s", err);
-        fail("Błąd konfiguracji",
-             "Skopiuj config.example.ini jako config.ini\n"
-             "obok EBOOT.PBP i uzupełnij host, token i encje.");
+        fail(tr("Błąd konfiguracji"),
+             tr("Skopiuj config.example.ini jako config.ini\n"
+                "obok EBOOT.PBP i uzupełnij host, token i encje."));
         return 0;
     }
     if (cfg.source_count)
-        set_step(STEP_CONFIG, STEP_OK, "%d encji + %s, co %d s", cfg.entity_count, cfg.sources[0], cfg.refresh_s);
+        set_step(STEP_CONFIG, STEP_OK, tr("%d encji + %s, co %d s"), cfg.entity_count, cfg.sources[0], cfg.refresh_s);
     else
-        set_step(STEP_CONFIG, STEP_OK, "%d encji, odświeżanie co %d s", cfg.entity_count, cfg.refresh_s);
+        set_step(STEP_CONFIG, STEP_OK, tr("%d encji, odświeżanie co %d s"), cfg.entity_count, cfg.refresh_s);
     int bl = night_init_backlight(cfg.dir);
     printf("[start] podswietlenie: %s\n", bl ? "backlight.prx" : "brak modulu, przyciemnianie obrazu");
     LOCKED(
@@ -237,14 +247,14 @@ static int worker_main(void *arg) {
     );
 
     // 2. Wi-Fi
-    set_step(STEP_WIFI, STEP_ACTIVE, "profil %d", cfg.wifi_profile);
+    set_step(STEP_WIFI, STEP_ACTIVE, tr("profil %d"), cfg.wifi_profile);
     char ip[32] = "?";
     int ret = net_connect(cfg.wifi_profile, 20000, ip, sizeof(ip));
     if (ret < 0) {
-        set_step(STEP_WIFI, STEP_ERROR, "kod 0x%08X", (unsigned)ret);
-        fail("Brak połączenia Wi-Fi",
-             "PPSSPP: Ustawienia > Sieć > włącz sieć.\n"
-             "PSP: zapisz sieć w Ustawienia > Ustawienia sieci.");
+        set_step(STEP_WIFI, STEP_ERROR, tr("kod 0x%08X"), (unsigned)ret);
+        fail(tr("Brak połączenia Wi-Fi"),
+             tr("PPSSPP: Ustawienia > Sieć > włącz sieć.\n"
+                "PSP: zapisz sieć w Ustawienia > Ustawienia sieci."));
         return 0;
     }
     LOCKED(snprintf(state.ip, sizeof(state.ip), "%s", ip));
@@ -257,15 +267,15 @@ static int worker_main(void *arg) {
     set_step(STEP_RNG, hw ? STEP_OK : STEP_WARN, "%s", rng_status());
 
     // 4. TLS
-    set_step(STEP_TLS, STEP_ACTIVE, "wczytywanie CA");
+    set_step(STEP_TLS, STEP_ACTIVE, "%s", tr("wczytywanie CA"));
     if (https_global_init(cfg.ca_path[0] ? cfg.ca_path : NULL, err, sizeof(err)) != 0) {
         set_step(STEP_TLS, STEP_ERROR, "%s", err);
-        fail("Błąd TLS", "Sprawdź plik CA wskazany w config.ini (klucz ca).");
+        fail(tr("Błąd TLS"), tr("Sprawdź plik CA wskazany w config.ini (klucz ca)."));
         return 0;
     }
     if (https_client_init(&client, cfg.host, cfg.port) != 0) {
-        set_step(STEP_TLS, STEP_ERROR, "konfiguracja klienta");
-        fail("Błąd TLS", NULL);
+        set_step(STEP_TLS, STEP_ERROR, "%s", tr("konfiguracja klienta"));
+        fail(tr("Błąd TLS"), NULL);
         return 0;
     }
     set_step(STEP_TLS, STEP_OK, "CA: %s", https_ca_source());
@@ -273,17 +283,17 @@ static int worker_main(void *arg) {
     // 5. Pierwsze połączenie z Home Assistant
     set_step(STEP_HA, STEP_ACTIVE, "%s:%d", cfg.host, cfg.port);
     if (cfg.source_count) {
-        set_step(STEP_HA, STEP_ACTIVE, "lista encji: %s", cfg.sources[0]);
+        set_step(STEP_HA, STEP_ACTIVE, tr("lista encji: %s"), cfg.sources[0]);
         int n = resolve_entities();
         if (n <= 0 && client.handshakes) {
             SDL_LockMutex(lock);
             char msg[96];
-            snprintf(msg, sizeof(msg), "%s", n < 0 ? state.list_error : "lista encji jest pusta");
+            snprintf(msg, sizeof(msg), "%s", n < 0 ? state.list_error : tr("lista encji jest pusta"));
             SDL_UnlockMutex(lock);
             set_step(STEP_HA, STEP_ERROR, "%s", msg);
-            fail("Brak encji do wyświetlenia",
-                 "Nadaj encjom etykietę (np. psp) w HA albo dodaj je\n"
-                 "do grupy; możesz też wpisać linie entity w config.ini.");
+            fail(tr("Brak encji do wyświetlenia"),
+                 tr("Nadaj encjom etykietę (np. psp) w HA albo dodaj je\n"
+                    "do grupy; możesz też wpisać linie entity w config.ini."));
             https_client_free(&client);
             return 0;
         }
@@ -295,9 +305,9 @@ static int worker_main(void *arg) {
         snprintf(msg, sizeof(msg), "%s", state.refresh_error);
         SDL_UnlockMutex(lock);
         set_step(STEP_HA, STEP_ERROR, "%s", msg);
-        fail("Nie można połączyć z Home Assistant",
-             "Sprawdź host i port w config.ini oraz to,\n"
-             "czy certyfikat pasuje do nazwy hosta.");
+        fail(tr("Nie można połączyć z Home Assistant"),
+             tr("Sprawdź host i port w config.ini oraz to,\n"
+                "czy certyfikat pasuje do nazwy hosta."));
         https_client_free(&client);
         return 0;
     }

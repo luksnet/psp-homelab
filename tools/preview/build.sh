@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Buduje i uruchamia podgląd GUI na komputerze; zapisuje zrzuty PNG.
-# Użycie: tools/preview/build.sh [katalog_wyjściowy]   (domyślnie build/preview)
+# Użycie: tools/preview/build.sh [katalog_wyjściowy]   (domyślnie build/preview, wersja angielska w en/)
 # Wymaga: sdl2, sdl2_ttf (pacman), pspdev (dla nagłówków mbedTLS), opcjonalnie magick.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -21,12 +21,14 @@ done
 
 cc -std=gnu11 -O1 -Wall -Wno-unused-parameter \
    -I"$root/tools/preview" -I"$work/shim" -I"$root/src" \
-   "$root/tools/preview/preview.c" "$root/src/ui.c" "$root/src/chart.c" "$root/src/timeutil.c" \
+   "$root/tools/preview/preview.c" "$root/src/ui.c" "$root/src/chart.c" "$root/src/timeutil.c" "$root/src/i18n.c" \
    "$work/font_regular.c" "$work/font_bold.c" \
    $(pkg-config --cflags --libs sdl2 SDL2_ttf) -lm -o "$work/preview"
 
+mkdir -p "$out/en"
 "$work/preview" "$out"
+"$work/preview" "$out/en" en
 if command -v magick >/dev/null; then
-    for b in "$out"/*.bmp; do magick "$b" "${b%.bmp}.png" && rm "$b"; done
+    for b in "$out"/*.bmp "$out"/en/*.bmp; do magick "$b" "${b%.bmp}.png" && rm "$b"; done
 fi
-ls "$out"
+ls "$out" "$out/en"

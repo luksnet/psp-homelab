@@ -1,4 +1,5 @@
 #include "rng.h"
+#include "i18n.h"
 #include "kmod.h"
 
 #include <stdio.h>
@@ -21,7 +22,7 @@ static int all_same(const unsigned char *b, int n) {
 int rng_init(const char *dir) {
     int mod = kmod_load(dir, "kirkrng.prx");
     if (mod < 0) {
-        snprintf(status, sizeof(status), "SŁABY: brak kirkrng.prx (0x%08X)", (unsigned)mod);
+        snprintf(status, sizeof(status), tr("SŁABY: brak kirkrng.prx (0x%08X)"), (unsigned)mod);
         return 0;
     }
 
@@ -33,16 +34,16 @@ int rng_init(const char *dir) {
     int ra = kirkrng_get(a, sizeof(a));
     int rb = kirkrng_get(b, sizeof(b));
     if (ra != (int)sizeof(a) || rb != (int)sizeof(b)) {
-        snprintf(status, sizeof(status), "SŁABY: KIRK błąd %d/%d", ra, rb);
+        snprintf(status, sizeof(status), tr("SŁABY: KIRK błąd %d/%d"), ra, rb);
         return 0;
     }
     if (memcmp(a, b, sizeof(a)) == 0 || all_same(a, sizeof(a)) || all_same(b, sizeof(b))) {
-        snprintf(status, sizeof(status), "SŁABY: KIRK zwraca stałe dane");
+        snprintf(status, sizeof(status), "%s", tr("SŁABY: KIRK zwraca stałe dane"));
         return 0;
     }
 
     hw_ok = 1;
-    snprintf(status, sizeof(status), "KIRK (sprzętowy)");
+    snprintf(status, sizeof(status), "%s", tr("KIRK (sprzętowy)"));
     return 1;
 }
 
