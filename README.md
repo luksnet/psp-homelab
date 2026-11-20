@@ -1,5 +1,7 @@
 # psp-homelab
 
+**Polski** · [English](README.en.md)
+
 Panel stanu Home Assistant na PSP. Łączy się przez Wi-Fi, pobiera stany wybranych
 encji przez HTTPS (TLS 1.2, mbedTLS) i pokazuje je jako kafelki w kolorach Gruvbox.
 Klucze TLS powstają z użyciem sprzętowego generatora liczb losowych układu KIRK.
@@ -144,7 +146,7 @@ tools/mock_ha.py --cert /tmp/testca/server.pem --key /tmp/testca/server.key \
     --token test-token --close-after 4
 ```
 
-Atrapa zna też etykietę `psp`, grupę `group.psp` i zwraca sztuczną historię
+Atrapa zna też etykietę `psp`, grupy `group.psp` i `light.psp` oraz zwraca sztuczną historię
 (`/api/history/period`). `--template-admin-only` odrzuca `/api/template`
 kodem 401, jak HA dla tokenu bez uprawnień administratora.
 
@@ -224,10 +226,7 @@ czasem) nie jest używane jako jedyne źródło.
   działają). Cloudflare, example.com i atrapa działają. Nie wyjaśnione.
 - **Nie testowane jeszcze na prawdziwym PSP.**
 
-## Licencje
-
-Czcionki Noto Sans: SIL Open Font License 1.1, patrz `assets/fonts/README.md`.
-
 ## Licencja
 
-Kod: MIT (plik `LICENSE`). Czcionki w `assets/fonts/`: SIL Open Font License 1.1.
+Kod: MIT (plik `LICENSE`). Czcionki Noto Sans w `assets/fonts/`: SIL Open Font
+License 1.1, patrz `assets/fonts/README.md`.
