@@ -100,7 +100,7 @@ static int save(SDL_Renderer *r, SDL_Surface *surf, const char *dir, const char 
 
 int main(int argc, char **argv) {
     const char *out = argc > 1 ? argv[1] : ".";
-    if (argc > 2 && !strcmp(argv[2], "en")) i18n_set(LANG_EN);
+    i18n_set(argc > 2 && !strcmp(argv[2], "pl") ? LANG_PL : LANG_EN);
     if (SDL_Init(0) != 0) return 1;
     SDL_Surface *surf = SDL_CreateRGBSurfaceWithFormat(0, UI_W, UI_H, 32, SDL_PIXELFORMAT_ARGB8888);
     SDL_Renderer *r = SDL_CreateSoftwareRenderer(surf);

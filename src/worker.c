@@ -211,16 +211,16 @@ static int worker_main(void *arg) {
     int cl = config_load(argv0_copy, &cfg, err, sizeof(err));
     if (cl == -2) {
         // Bez pliku nie znamy języka: komunikat w obu.
-        set_step(STEP_CONFIG, STEP_ERROR, "brak config.ini / config.ini not found");
-        fail("Brak config.ini / config.ini not found",
-             "Skopiuj config.example.ini jako config.ini obok EBOOT.PBP.\n"
-             "Copy config.example.ini to config.ini next to EBOOT.PBP.");
+        set_step(STEP_CONFIG, STEP_ERROR, "config.ini not found / brak config.ini");
+        fail("config.ini not found / Brak config.ini",
+             "Copy config.example.ini to config.ini next to EBOOT.PBP.\n"
+             "Skopiuj config.example.pl.ini jako config.ini obok EBOOT.PBP.");
         return 0;
     }
     if (cl != 0) {
         set_step(STEP_CONFIG, STEP_ERROR, "%s", err);
         fail(tr("Błąd konfiguracji"),
-             tr("Skopiuj config.example.ini jako config.ini\n"
+             tr("Skopiuj config.example.pl.ini jako config.ini\n"
                 "obok EBOOT.PBP i uzupełnij host, token i encje."));
         return 0;
     }

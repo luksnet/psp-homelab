@@ -129,6 +129,7 @@ int main(void) {
         CHECK(!strcmp(a, b));
         for (int j = 0; j < i; j++) CHECK(strcmp(i18n_pl(i), i18n_pl(j)));  // bez duplikatów
     }
+    CHECK(i18n_get() == LANG_EN);   // domyślny język
     i18n_set(LANG_PL);
     CHECK(!strcmp(tr("teraz"), "teraz") && i18n_decimal() == ',');
     i18n_set(LANG_EN);

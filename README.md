@@ -1,103 +1,106 @@
 # psp-homelab
 
-**Polski** · [English](README.en.md)
+**English** · [Polski](README.pl.md)
 
-Panel stanu Home Assistant na PSP. Łączy się przez Wi-Fi, pobiera stany wybranych
-encji przez HTTPS (TLS 1.2, mbedTLS) i pokazuje je jako kafelki w kolorach Gruvbox.
-Klucze TLS powstają z użyciem sprzętowego generatora liczb losowych układu KIRK.
+A Home Assistant status panel for the PSP. It connects over Wi-Fi, fetches the
+state of selected entities over HTTPS (TLS 1.2, mbedTLS) and shows them as tiles
+in Gruvbox colours. TLS keys are generated using the hardware random number
+generator of the KIRK chip.
 
-- listę encji może brać prosto z HA (etykieta albo grupa), bez edycji pliku
-- wykres historii dowolnej encji z ostatnich 3, 6, 24 lub 72 godzin
-- tryb nocny: w nocy przygasza podświetlenie ekranu
-- wgrywanie na PSP jedną komendą przez USB
+- can take the entity list straight from HA (a label or a group), no file editing
+- history chart for any entity over the last 3, 6, 24 or 72 hours
+- night mode: dims the screen backlight at night
+- one-command install to the PSP over USB
+
+The interface is in English by default; `lang = pl` in `config.ini` switches it to Polish.
 
 ![Panel](docs/panel.png)
-![Wykres](docs/wykres.png)
+![Chart](docs/chart.png)
 
-## Wymagania
+## Requirements
 
-- toolchain [pspdev](https://github.com/pspdev/pspdev) w `~/pspdev` (mbedTLS 2.28, SDL2, SDL2_ttf, cJSON)
-- do testów: emulator PPSSPP (`sudo pacman -S ppsspp`), Python 3, openssl
-- do podglądu GUI na komputerze: `sdl2`, `sdl2_ttf`, opcjonalnie ImageMagick
-- na prawdziwym PSP: custom firmware (ARK-4) i zapisana sieć Wi-Fi 2.4 GHz
+- the [pspdev](https://github.com/pspdev/pspdev) toolchain in `~/pspdev` (mbedTLS 2.28, SDL2, SDL2_ttf, cJSON)
+- for tests: the PPSSPP emulator (`sudo pacman -S ppsspp`), Python 3, openssl
+- for a GUI preview on the computer: `sdl2`, `sdl2_ttf`, optionally ImageMagick
+- on a real PSP: custom firmware (ARK-4) and a saved 2.4 GHz Wi-Fi network
 
-## Budowanie
+## Building
 
 ```bash
 ./build.sh
 ```
 
-Wynik w `build/`:
+Output in `build/`:
 
-| Plik | Co to |
+| File | What it is |
 |---|---|
-| `EBOOT.PBP` | program (z wbudowanymi czcionkami i listą publicznych CA) |
-| `kirkrng.prx` | moduł jądra ze sprzętowym generatorem losowym KIRK |
-| `backlight.prx` | moduł jądra sterujący jasnością podświetlenia (tryb nocny) |
+| `EBOOT.PBP` | the program (with embedded fonts and the public CA list) |
+| `kirkrng.prx` | kernel module exposing the KIRK hardware random generator |
+| `backlight.prx` | kernel module controlling backlight brightness (night mode) |
 
-Lista publicznych CA jest wbudowywana z `/etc/ssl/certs/ca-certificates.crt`.
+The public CA list is embedded from `/etc/ssl/certs/ca-certificates.crt`.
 
-## Instalacja na PSP
+## Installing on the PSP
 
-Na PSP wybierz Ustawienia → Połączenie USB, podłącz kabel i uruchom:
+On the PSP choose Settings → USB Connection, plug in the cable and run:
 
 ```bash
 tools/deploy.sh
 ```
 
-Skrypt przebudowuje program, znajduje kartę PSP w `/run/media/$USER/`
-i kopiuje do `PSP/GAME/psp-homelab/` pliki `EBOOT.PBP`, `kirkrng.prx`
-i `backlight.prx`. `config.ini` i `ca.pem` z katalogu projektu kopiuje
-tylko wtedy, gdy na karcie ich jeszcze nie ma.
+The script rebuilds the program, finds the PSP's memory stick in
+`/run/media/$USER/` and copies `EBOOT.PBP`, `kirkrng.prx` and `backlight.prx`
+to `PSP/GAME/psp-homelab/`. It copies `config.ini` and `ca.pem` from the
+project directory only if they are not on the card yet.
 
-| Opcja | Działanie |
+| Option | Effect |
 |---|---|
-| `--config` | nadpisz też `config.ini` i `ca.pem` na karcie |
-| `--eject` | odmontuj kartę po skopiowaniu (można od razu odłączyć kabel) |
-| `--target DIR` | katalog główny karty, gdy nie jest w `/run/media` |
-| `--no-build` | nie przebudowuj przed kopiowaniem |
+| `--config` | also overwrite `config.ini` and `ca.pem` on the card |
+| `--eject` | unmount the card after copying (you can unplug the cable right away) |
+| `--target DIR` | root of the card when it is not under `/run/media` |
+| `--no-build` | do not rebuild before copying |
 
-Ręcznie: do `ms0:/PSP/GAME/psp-homelab/` skopiuj `EBOOT.PBP`, oba pliki
-`.prx`, `config.ini` (z `config.example.ini`) i ewentualnie `ca.pem`.
+Manually: copy `EBOOT.PBP`, both `.prx` files, `config.ini` (from
+`config.example.ini`, or `config.example.pl.ini` for a Polish one) and optionally `ca.pem` to `ms0:/PSP/GAME/psp-homelab/`.
 
-Bez `kirkrng.prx` program działa, ale z gorszym źródłem losowości;
-panel pokazuje wtedy „RNG: słaby”. Bez `backlight.prx` tryb nocny
-przyciemnia sam obraz zamiast podświetlenia (podświetlenie dalej świeci).
+Without `kirkrng.prx` the program works, but with a weaker randomness source;
+the panel then shows "RNG: weak". Without `backlight.prx` night mode
+darkens the picture instead of the backlight (the backlight stays on).
 
-## Konfiguracja
+## Configuration
 
-| Klucz | Opis |
+| Key | Description |
 |---|---|
-| `lang` | język interfejsu: `pl` (domyślnie) albo `en` |
-| `host`, `port` | adres Home Assistant; nazwa musi pasować do certyfikatu |
-| `token` | token długoterminowy, najlepiej użytkownika bez uprawnień administratora |
-| `ca` | puste = publiczne CA; `ca.pem` = własne CA z pliku obok `config.ini` |
-| `refresh` | co ile sekund odświeżać (min. 5) |
-| `wifi_profile` | numer zapisanej sieci na PSP |
-| `entity` | encja do wyświetlenia, powtarzane; pokazywane pierwsze |
-| `entities_from` | lista encji z HA: `label:psp` albo grupa, np. `light.psp`; powtarzane (maks. 8) |
-| `night` | godziny trybu nocnego, np. `22:00-07:00`; `off` wyłącza |
-| `night_brightness` | jasność w nocy, 0–100 (domyślnie 10) |
-| `night_wake` | na ile sekund przycisk rozjaśnia ekran w nocy (domyślnie 30) |
-| `autoexit` | tylko do testów: zamknij program po N sekundach |
-| `test_chart` | tylko do testów: po starcie otwórz wykres tej encji |
+| `lang` | interface language: `en` (default) or `pl` |
+| `host`, `port` | Home Assistant address; the name must match the certificate |
+| `token` | long-lived access token, ideally of a non-admin user |
+| `ca` | empty = public CAs; `ca.pem` = your own CA from a file next to `config.ini` |
+| `refresh` | refresh interval in seconds (min. 5) |
+| `wifi_profile` | number of the saved network on the PSP |
+| `entity` | entity to display, repeatable; shown first |
+| `entities_from` | entity list from HA: `label:psp` or a group, e.g. `light.psp`; repeatable (max. 8) |
+| `night` | night mode hours, e.g. `22:00-07:00`; `off` disables it |
+| `night_brightness` | brightness at night, 0–100 (default 10) |
+| `night_wake` | how many seconds a button press brightens the screen at night (default 30) |
+| `autoexit` | testing only: quit the program after N seconds |
+| `test_chart` | testing only: open the chart of this entity after start |
 
-Razem maks. 24 encje, po 6 na stronę. Wymagane jest `entity` albo `entities_from`.
+At most 24 entities in total, 6 per page. Either `entity` or `entities_from` is required.
 
-### Lista encji z Home Assistant
+### Entity list from Home Assistant
 
-Zamiast wpisywać encje do `config.ini`, oznacz je w HA i podaj źródło:
+Instead of listing entities in `config.ini`, mark them in HA and give the source:
 
-- **Etykieta** (`entities_from = label:psp`): w HA Ustawienia → Obszary,
-  etykiety i strefy → Etykiety, dodaj `psp` i nadaj ją encjom. Program pyta
-  o nie przez `POST /api/template`, a to wymaga tokenu **administratora**.
-  Z tokenem zwykłego użytkownika HA odpowie 401 i na dole panelu pojawi się
-  „Lista: … 401”.
-- **Grupa** (`entities_from = light.psp`): działa z tokenem bez uprawnień
-  administratora, dlatego jest bezpieczniejszą opcją. Ustawienia → Urządzenia
-  i usługi → Pomocnicy → Utwórz pomocnika → Grupa. Taka grupa łączy encje
-  jednego typu (światła, czujniki, czujniki binarne, przełączniki...), więc
-  dla różnych typów zrób kilka grup i podaj każdą w osobnej linii:
+- **Label** (`entities_from = label:psp`): in HA go to Settings → Areas,
+  labels & zones → Labels, add `psp` and assign it to entities. The program
+  asks for them via `POST /api/template`, which requires an **admin** token.
+  With a regular user's token HA answers 401 and the bottom of the panel
+  shows "List: … 401".
+- **Group** (`entities_from = light.psp`): works with a non-admin token, which
+  makes it the safer option. Settings → Devices & services → Helpers →
+  Create helper → Group. Such a group combines entities of one type (lights,
+  sensors, binary sensors, switches...), so for different types create several
+  groups and list each on its own line:
 
   ```ini
   entities_from = light.psp
@@ -105,41 +108,41 @@ Zamiast wpisywać encje do `config.ini`, oznacz je w HA i podaj źródło:
   entities_from = binary_sensor.psp
   ```
 
-  Działa każda encja z atrybutem `entity_id`, także stara grupa `group.psp`
-  z `configuration.yaml`. Grupa czujników liczbowych w HA wymaga czujników
-  z tą samą jednostką; czujniki z różnymi jednostkami lepiej dodać przez
-  `entity` albo etykietę.
+  Any entity with an `entity_id` attribute works, including an old-style
+  `group.psp` from `configuration.yaml`. An HA group of numeric sensors needs
+  sensors with the same unit; sensors with different units are better added
+  via `entity` or a label.
 
-Lista odświeża się przy starcie i co 10 minut. Encje z linii `entity` są
-zawsze pierwsze, a powtórzenia są pomijane.
+The list refreshes at start and every 10 minutes. Entities from `entity`
+lines always come first, and duplicates are skipped.
 
-### Tryb nocny
+### Night mode
 
-W godzinach z `night` ekran przygasa do `night_brightness`. Pierwsze naciśnięcie
-dowolnego przycisku tylko rozjaśnia ekran na `night_wake` sekund (niczego nie
-zmienia na panelu). Po wyjściu z programu jasność wraca do poprzedniej.
-Godziny są w czasie lokalnym PSP (Ustawienia systemu → Data i czas).
+During the `night` hours the screen dims to `night_brightness`. The first press
+of any button only brightens the screen for `night_wake` seconds (it changes
+nothing on the panel). On exit the brightness returns to its previous value.
+Hours are in the PSP's local time (System Settings → Date & Time).
 
-`config.ini` zawiera token i jest w `.gitignore`.
+`config.ini` contains the token and is in `.gitignore`.
 
-## Sterowanie
+## Controls
 
-| Przycisk | Działanie |
+| Button | Action |
 |---|---|
-| D-pad | wybór kafelka |
-| L / R | poprzednia / następna strona |
-| △ | wykres historii zaznaczonej encji |
-| X | odśwież teraz |
-| START | wyjście |
+| D-pad | select a tile |
+| L / R | previous / next page |
+| △ | history chart of the selected entity |
+| X | refresh now |
+| START | quit |
 
-Na wykresie: L / R zmienia zakres (3, 6, 24, 72 h), lewo / prawo przechodzi
-do sąsiedniej encji, △ albo O wraca do kafelków. Liczby są uśredniane do
-200 punktów; stany wł./wył. (światła, drzwi) rysowane są jako schodki,
-a każde włączenie jest widoczne, nawet krótkie.
+On the chart: L / R changes the range (3, 6, 24, 72 h), left / right moves
+to the neighbouring entity, △ or O returns to the tiles. Numbers are averaged
+to 200 points; on/off states (lights, doors) are drawn as steps, and every
+switch-on is visible, even a short one.
 
-## Testy
+## Tests
 
-### Atrapa Home Assistant
+### Mock Home Assistant
 
 ```bash
 tools/make_test_ca.sh /tmp/testca
@@ -147,90 +150,92 @@ tools/mock_ha.py --cert /tmp/testca/server.pem --key /tmp/testca/server.key \
     --token test-token --close-after 4
 ```
 
-Atrapa zna też etykietę `psp`, grupy `group.psp` i `light.psp` oraz zwraca sztuczną historię
-(`/api/history/period`). `--template-admin-only` odrzuca `/api/template`
-kodem 401, jak HA dla tokenu bez uprawnień administratora.
+The mock also knows the `psp` label, the groups `group.psp` and `light.psp`,
+and returns fake history (`/api/history/period`). `--template-admin-only`
+rejects `/api/template` with 401, like HA does for a non-admin token.
 
-Atrapa słucha na `https://localhost:8123`. W katalogu testowym połóż
-`EBOOT.PBP`, `kirkrng.prx`, `ca.pem` z `/tmp/testca` i `config.ini` z
-`host = localhost`, `port = 8123`, `token = test-token`, `ca = ca.pem`. Potem:
+The mock listens on `https://localhost:8123`. Put `EBOOT.PBP`, `kirkrng.prx`,
+`ca.pem` from `/tmp/testca` and a `config.ini` with `host = localhost`,
+`port = 8123`, `token = test-token`, `ca = ca.pem` in a test directory. Then:
 
 ```bash
-PPSSPPSDL katalog-testowy/EBOOT.PBP
+PPSSPPSDL test-dir/EBOOT.PBP
 ```
 
-W PPSSPP włącz sieć: Ustawienia → Sieć. `--close-after 4` zamyka połączenie
-co 4 żądania, żeby było widać wznawianie sesji TLS.
+Enable networking in PPSSPP: Settings → Networking. `--close-after 4` closes
+the connection every 4 requests, so TLS session resumption is visible.
 
-`PPSSPPHeadless -l` wypisuje w logu przebieg startu i każde odświeżanie
-(`[start]`, `[refresh]`, `[lista]`, `[wykres]`, `[noc]`). Uwaga: headless przyspiesza czas emulowany, a sieć
-hosta działa w czasie rzeczywistym, więc czasy odświeżania wychodzą tam zawyżone.
+`PPSSPPHeadless -l` prints the start sequence and every refresh to the log
+(`[start]`, `[refresh]`, `[lista]`, `[wykres]`, `[noc]`; the log itself is in Polish). Note: headless mode
+speeds up emulated time while host networking runs in real time, so refresh
+timings come out inflated there.
 
-### Testy logiki
+### Logic tests
 
 ```bash
 tools/test/run.sh
 ```
 
-Sprawdza na komputerze parsowanie dat ISO, kubełki wykresu i okno trybu nocnego,
-a także tłumaczenia: każdy tekst w `tr("...")` musi mieć angielski odpowiednik
-w `src/i18n.c` z tymi samymi znacznikami printf.
+Checks ISO date parsing, chart buckets and the night mode window on the computer,
+plus the translations: every string in `tr("...")` must have an English
+counterpart in `src/i18n.c` with the same printf placeholders.
 
-### Podgląd GUI na komputerze
+### GUI preview on the computer
 
 ```bash
 tools/preview/build.sh
 ```
 
-Kompiluje `src/ui.c` na komputer i zapisuje przykładowe ekrany do
-`build/preview/*.png` (wersja angielska w `build/preview/en/`), bez emulatora.
+Compiles `src/ui.c` for the computer and saves sample screens to
+`build/preview/*.png` (Polish ones in `build/preview/pl/`), without an emulator.
 
-## Jak to działa
+## How it works
 
-| Plik | Rola |
+| File | Role |
 |---|---|
-| `src/main.c` | okno SDL2, pętla interfejsu, przyciski |
-| `src/ui.c` | rysowanie: ekran startowy, kafelki, paski stanu, cache tekstur z tekstem |
-| `src/worker.c` | wątek roboczy: Wi-Fi, TLS, odświeżanie; GUI nigdy nie czeka na sieć |
-| `src/https.c` | klient HTTPS: weryfikacja certyfikatu i nazwy (SNI), keep-alive, wznawianie sesji |
-| `src/ha.c` | stany encji, lista z etykiety/grupy, historia; JSON (cJSON) |
-| `src/chart.c` | uśrednianie historii do kubełków wykresu |
-| `src/timeutil.c` | czas UTC z zegara PSP, daty ISO 8601 |
-| `src/night.c` | tryb nocny: godziny, budzenie przyciskiem, jasność |
-| `src/rng.c`, `src/kmod.c` | wczytanie modułów jądra i test generatora |
-| `kirkrng/` | moduł jądra: polecenie KIRK 0xE (PRNG) udostępnione trybowi użytkownika |
-| `backlight/` | moduł jądra: `sceDisplaySetBrightness` z `sceDisplay_driver` |
-| `tools/deploy.sh` | wgrywanie na PSP przez USB |
+| `src/main.c` | SDL2 window, UI loop, buttons |
+| `src/ui.c` | drawing: start screen, tiles, status bars, text texture cache |
+| `src/worker.c` | worker thread: Wi-Fi, TLS, refreshing; the GUI never waits on the network |
+| `src/https.c` | HTTPS client: certificate and hostname (SNI) verification, keep-alive, session resumption |
+| `src/ha.c` | entity states, list from a label/group, history; JSON (cJSON) |
+| `src/chart.c` | averaging history into chart buckets |
+| `src/timeutil.c` | UTC time from the PSP clock, ISO 8601 dates |
+| `src/night.c` | night mode: hours, wake on button, brightness |
+| `src/rng.c`, `src/kmod.c` | loading the kernel modules and testing the generator |
+| `kirkrng/` | kernel module: KIRK command 0xE (PRNG) exposed to user mode |
+| `backlight/` | kernel module: `sceDisplaySetBrightness` from `sceDisplay_driver` |
+| `tools/deploy.sh` | installing to the PSP over USB |
 | `src/config.c`, `src/net.c` | `config.ini`, Wi-Fi |
-| `src/i18n.c` | teksty interfejsu po angielsku (`lang = en`); w kodzie są po polsku i przechodzą przez `tr()` |
+| `src/i18n.c` | UI translations: strings in the code are Polish and go through `tr()`, which returns English unless `lang = pl` |
 
-Losowość dla mbedTLS: KIRK jako źródło „silne” plus drgania zegara jako
-dodatkowe „słabe”. Domyślne `getentropy()` w pspdev (Mersenne Twister zasiany
-czasem) nie jest używane jako jedyne źródło.
+Randomness for mbedTLS: KIRK as the "strong" source plus clock jitter as an
+additional "weak" one. The default `getentropy()` in pspdev (a Mersenne
+Twister seeded with the time) is not used as the only source.
 
-## Znane ograniczenia i pułapki
+## Known limitations and pitfalls
 
-- **Linkowanie**: nie dodawaj `pspnet_inet`, `pspnet_resolver`, `psputility`
-  ani `psprtc` (dodaje je `psp-gcc`), ani `pspdisplay`, `pspge`, `pspctrl`
-  (dodaje je SDL2) do `target_link_libraries`. Podwójne linkowanie rozdziela
-  tablicę importów; objawem jest ostrzeżenie `psp-fixup-imports`
-  „stubs out of order”, a na PSP część funkcji nie zostaje podpięta.
-- **Podświetlenie**: `backlight.prx` używa starego NID funkcji
-  `sceDisplaySetBrightness` z pspsdk. ARK-4 powinien go przetłumaczyć na
-  firmware 6.61, ale nie zostało to sprawdzone na sprzęcie. Gdyby nie działało,
-  usuń `backlight.prx` z karty, a tryb nocny będzie przyciemniał obraz.
-- **Historia z 72 h** dla czujnika odświeżanego co kilka sekund to kilkaset KB
-  JSON-a; na PSP wczytuje się kilka sekund (limit odpowiedzi to 2 MB).
-- **Wątki**: na PSP wątki o równym priorytecie nie wywłaszczają się. Wątek
-  sieciowy ma wyższy priorytet niż GUI, a pętle oczekiwania TLS oddają procesor
-  (`sceKernelDelayThread`), inaczej zagładzają wątki sieciowe systemu.
-- **KIRK w emulatorze**: PPSSPP emuluje polecenie PRNG, więc test przechodzi,
-  ale prawdziwa jakość losowości dotyczy tylko sprzętu.
-- Serwery badssl.com nie odpowiadają w PPSSPP na ClientHello (z komputera
-  działają). Cloudflare, example.com i atrapa działają. Nie wyjaśnione.
-- **Nie testowane jeszcze na prawdziwym PSP.**
+- **Linking**: do not add `pspnet_inet`, `pspnet_resolver`, `psputility`
+  or `psprtc` (added by `psp-gcc`), nor `pspdisplay`, `pspge`, `pspctrl`
+  (added by SDL2) to `target_link_libraries`. Linking them twice splits the
+  import table; the symptom is a `psp-fixup-imports` warning
+  "stubs out of order", and on the PSP some functions do not get resolved.
+- **Backlight**: `backlight.prx` uses the old pspsdk NID of
+  `sceDisplaySetBrightness`. ARK-4 should translate it for firmware 6.61,
+  but this has not been checked on hardware. If it does not work, remove
+  `backlight.prx` from the card and night mode will darken the picture instead.
+- **72 h history** for a sensor updated every few seconds is several hundred KB
+  of JSON; on the PSP it takes a few seconds to load (the response limit is 2 MB).
+- **Threads**: on the PSP, threads of equal priority do not preempt each other.
+  The network thread has a higher priority than the GUI, and the TLS wait loops
+  yield the CPU (`sceKernelDelayThread`); otherwise they starve the system's
+  network threads.
+- **KIRK in the emulator**: PPSSPP emulates the PRNG command, so the test
+  passes, but real randomness quality only applies to hardware.
+- badssl.com servers do not answer the ClientHello in PPSSPP (they work from
+  the computer). Cloudflare, example.com and the mock work. Not explained.
+- **Not yet tested on a real PSP.**
 
-## Licencja
+## License
 
-Kod: MIT (plik `LICENSE`). Czcionki Noto Sans w `assets/fonts/`: SIL Open Font
-License 1.1, patrz `assets/fonts/README.md`.
+Code: MIT (see `LICENSE`). Noto Sans fonts in `assets/fonts/`: SIL Open Font
+License 1.1, see `assets/fonts/README.md`.

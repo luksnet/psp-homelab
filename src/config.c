@@ -61,18 +61,18 @@ int config_load(const char *argv0, app_config *cfg, char *err, int errlen) {
     char *dir = cfg->dir;
     FILE *f = open_config(argv0, cfg->path, sizeof(cfg->path), dir, sizeof(cfg->dir));
     if (!f) {
-        snprintf(err, errlen, "nie znaleziono config.ini / config.ini not found");
+        snprintf(err, errlen, "config.ini not found / nie znaleziono config.ini");
         return -2;
     }
 
     // Najpierw sam klucz lang, żeby kolejne błędy były już w wybranym języku.
     char line[640];
-    i18n_set(LANG_PL);
+    i18n_set(LANG_EN);
     while (fgets(line, sizeof(line), f)) {
         char *s = trim(line), *eq = strchr(s, '=');
         if (!eq || *s == '#' || *s == ';') continue;
         *eq = '\0';
-        if (!strcmp(trim(s), "lang") && !strcmp(trim(eq + 1), "en")) i18n_set(LANG_EN);
+        if (!strcmp(trim(s), "lang") && !strcmp(trim(eq + 1), "pl")) i18n_set(LANG_PL);
     }
     rewind(f);
 

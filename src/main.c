@@ -1,5 +1,5 @@
 // psp-homelab: panel stanu Home Assistant na PSP (GUI na SDL2).
-// Konfiguracja w config.ini obok EBOOT.PBP (patrz config.example.ini).
+// Konfiguracja w config.ini obok EBOOT.PBP (patrz config.example.ini / config.example.pl.ini).
 //
 // SDL2main definiuje właściwe main(), informacje o module i obsługę HOME,
 // dlatego tutaj nie ma PSP_MODULE_INFO ani własnych callbacków.

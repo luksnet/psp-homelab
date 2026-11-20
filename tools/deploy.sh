@@ -73,7 +73,7 @@ for f in config.ini ca.pem; do
         echo "  $f — już jest na PSP, pomijam (użyj --config, żeby nadpisać)"
     fi
 done
-[ -f "$dest/config.ini" ] || echo "Uwaga: na PSP nie ma config.ini — skopiuj config.example.ini jako config.ini i uzupełnij" >&2
+[ -f "$dest/config.ini" ] || echo "Uwaga: na PSP nie ma config.ini — skopiuj config.example.ini (albo config.example.pl.ini) jako config.ini i uzupełnij" >&2
 
 echo "Zapisywanie na kartę…"
 sync

@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-static ui_lang current = LANG_PL;
+static ui_lang current = LANG_EN;
 
 // Polski tekst (dokładnie jak w kodzie) -> angielski.
 // Wzorce printf muszą mieć te same specyfikatory w tej samej kolejności
@@ -37,7 +37,7 @@ static const struct { const char *pl, *en; } table[] = {
     {"L/R zakres · ‹ › encja · Δ/O powrót", "L/R range · ‹ › entity · Δ/O back"},
     // worker.c
     {"Błąd konfiguracji", "Configuration error"},
-    {"Skopiuj config.example.ini jako config.ini\n"
+    {"Skopiuj config.example.pl.ini jako config.ini\n"
      "obok EBOOT.PBP i uzupełnij host, token i encje.",
      "Copy config.example.ini to config.ini\n"
      "next to EBOOT.PBP and fill in host, token and entities."},

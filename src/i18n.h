@@ -1,5 +1,5 @@
 #pragma once
-// Język interfejsu: polski (domyślnie) albo angielski, klucz lang w config.ini.
+// Język interfejsu: angielski (domyślnie) albo polski, klucz lang w config.ini.
 // Teksty w kodzie są po polsku; tr() zwraca ich odpowiednik w bieżącym języku.
 
 typedef enum { LANG_PL = 0, LANG_EN = 1 } ui_lang;

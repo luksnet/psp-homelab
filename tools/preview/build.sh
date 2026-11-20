@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Buduje i uruchamia podgląd GUI na komputerze; zapisuje zrzuty PNG.
-# Użycie: tools/preview/build.sh [katalog_wyjściowy]   (domyślnie build/preview, wersja angielska w en/)
+# Użycie: tools/preview/build.sh [katalog_wyjściowy]   (domyślnie build/preview, wersja polska w pl/)
 # Wymaga: sdl2, sdl2_ttf (pacman), pspdev (dla nagłówków mbedTLS), opcjonalnie magick.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -25,10 +25,10 @@ cc -std=gnu11 -O1 -Wall -Wno-unused-parameter \
    "$work/font_regular.c" "$work/font_bold.c" \
    $(pkg-config --cflags --libs sdl2 SDL2_ttf) -lm -o "$work/preview"
 
-mkdir -p "$out/en"
-"$work/preview" "$out"
-"$work/preview" "$out/en" en
+mkdir -p "$out/pl"
+"$work/preview" "$out" en
+"$work/preview" "$out/pl" pl
 if command -v magick >/dev/null; then
-    for b in "$out"/*.bmp "$out"/en/*.bmp; do magick "$b" "${b%.bmp}.png" && rm "$b"; done
+    for b in "$out"/*.bmp "$out"/pl/*.bmp; do magick "$b" "${b%.bmp}.png" && rm "$b"; done
 fi
-ls "$out" "$out/en"
+ls "$out" "$out/pl"
