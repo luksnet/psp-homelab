@@ -1,0 +1,6 @@
+build/
+# Prawdziwa konfiguracja zawiera token
+config.ini
+# Klucze testowego CA
+*.key
+testca/
