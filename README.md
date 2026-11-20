@@ -227,3 +227,7 @@ czasem) nie jest używane jako jedyne źródło.
 ## Licencje
 
 Czcionki Noto Sans: SIL Open Font License 1.1, patrz `assets/fonts/README.md`.
+
+## Licencja
+
+Kod: MIT (plik `LICENSE`). Czcionki w `assets/fonts/`: SIL Open Font License 1.1.
