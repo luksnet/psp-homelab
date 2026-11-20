@@ -70,13 +70,13 @@ static void base_panel(app_state *s) {
     s->running = 1;
     snprintf(s->host, sizeof(s->host), "ha.example.dev");
     s->refresh_s = 30;
-    ent(s, "light.salon", L("Światło w salonie", "Living room light"), "on", "", 1, NULL);
-    ent(s, "light.sypialnia", L("Sypialnia", "Bedroom"), "off", "", 1, NULL);
-    ent(s, "sensor.temperatura_salon", L("Temperatura w salonie", "Living room temperature"), "21.4", "°C", 1, NULL);
-    ent(s, "binary_sensor.drzwi_wejsciowe", L("Drzwi wejściowe", "Front door"), "closed", "", 1, NULL);
+    ent(s, L("light.salon", "light.living_room"), L("Światło w salonie", "Living room light"), "on", "", 1, NULL);
+    ent(s, L("light.sypialnia", "light.bedroom"), L("Sypialnia", "Bedroom"), "off", "", 1, NULL);
+    ent(s, L("sensor.temperatura_salon", "sensor.living_room_temperature"), L("Temperatura w salonie", "Living room temperature"), "21.4", "°C", 1, NULL);
+    ent(s, L("binary_sensor.drzwi_wejsciowe", "binary_sensor.front_door"), L("Drzwi wejściowe", "Front door"), "closed", "", 1, NULL);
     ent(s, "sensor.proxmox_cpu", "Proxmox CPU", "12", "%", 1, NULL);
     ent(s, "switch.lab_ad", "Lab Active Directory", "unavailable", "", 1, NULL);
-    ent(s, "sensor.nie_istnieje", "sensor.nie_istnieje", "", "", 0, tr("brak encji (404)"));
+    ent(s, L("sensor.nie_istnieje", "sensor.does_not_exist"), L("sensor.nie_istnieje", "sensor.does_not_exist"), "", "", 0, tr("brak encji (404)"));
     snprintf(s->tls_version, sizeof(s->tls_version), "TLSv1.2");
     s->resumed = 1;
     s->handshake_ms = 18;
@@ -153,14 +153,14 @@ int main(int argc, char **argv) {
 
     // 6. Wykres temperatury (24 h)
     base_panel(&s);
-    fake_chart(&s, "sensor.temperatura_salon", 24, 0);
+    fake_chart(&s, L("sensor.temperatura_salon", "sensor.living_room_temperature"), 24, 0);
     draw_chart_view(&s, 2, 2, 0);
     rc |= save(r, surf, out, "6-wykres");
 
     // 7. Wykres drzwi (wł./wył., 24 h)
     base_panel(&s);
     snprintf(s.ents[3].state, sizeof(s.ents[3].state), "off");
-    fake_chart(&s, "binary_sensor.drzwi_wejsciowe", 24, 1);
+    fake_chart(&s, L("binary_sensor.drzwi_wejsciowe", "binary_sensor.front_door"), 24, 1);
     draw_chart_view(&s, 3, 2, 0);
     rc |= save(r, surf, out, "7-wykres-drzwi");
 
